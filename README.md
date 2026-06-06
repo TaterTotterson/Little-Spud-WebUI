@@ -1,3 +1,12 @@
+<div align="center">
+  <a href="https://taterassistant.com">
+    <img src="assets/littlespud.png" alt="Tater Little Spud Client" width="720"/>
+  </a>
+</div>
+<h3 align="center">
+  <a href="https://taterassistant.com">taterassistant.com</a>
+</h3>
+
 # Little Spud WebUI
 
 Little Spud WebUI is a lightweight browser client for Tater Spud Link. It pairs to a Spud Hub or Spudlet with a QR code or manual sync code, then talks to Tater through the native Spud Link API.
