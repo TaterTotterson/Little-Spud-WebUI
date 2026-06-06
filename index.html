@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f47a1f" />
+  <title>Little Spud</title>
+  <script>
+    (() => {
+      const path = window.location.pathname || "/";
+      const last = path.split("/").filter(Boolean).pop() || "";
+      if (!path.endsWith("/") && last && !last.includes(".")) {
+        window.location.replace(`${window.location.origin}${path}/${window.location.search}${window.location.hash}`);
+      }
+    })();
+  </script>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./assets/little-spud.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./src/styles.css?v=30" />
+  <script defer src="./src/app.js?v=30"></script>
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <button id="sidebar-scrim" class="sidebar-scrim" type="button" aria-label="Hide controls"></button>
+    <aside id="spud-sidebar" class="side-rail" aria-label="Little Spud controls">
+      <div class="brand-lockup">
+        <span class="spud-mark" aria-hidden="true"><span></span></span>
+        <div>
+          <strong>Little Spud</strong>
+          <small id="connection-subtitle">Not paired</small>
+        </div>
+      </div>
+
+      <section class="profile-panel" aria-label="Profile and sync">
+        <label>
+          <span>User name</span>
+          <input id="user-name" autocomplete="name" placeholder="Spudlord" />
+        </label>
+        <label>
+          <span>Device name</span>
+          <input id="device-name" autocomplete="off" placeholder="iPhone" />
+        </label>
+        <label>
+          <span>Tater URL</span>
+          <input id="hub-url" inputmode="url" placeholder="http://tater.local:8501" />
+        </label>
+        <p class="connection-note">
+          If Little Spud is open over HTTPS, use an HTTPS Tater URL. Use HTTP only when Little Spud is also open over HTTP.
+        </p>
+        <label>
+          <span>Sync code or QR payload</span>
+          <textarea id="sync-code" rows="4" spellcheck="false" placeholder="Paste pairing code, JSON payload, or tater-spudlink:// QR payload"></textarea>
+        </label>
+        <div class="button-row">
+          <button id="pair-btn" class="primary-btn" type="button">Connect</button>
+          <button id="scan-btn" class="icon-btn" type="button" title="Scan QR" aria-label="Scan QR">
+            <span class="qr-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div id="pairing-status" class="status-line">Enter your sync details to pair.</div>
+      </section>
+
+      <section class="link-panel" aria-label="Pairing status">
+        <div class="status-pill" id="status-pill"><span></span> Offline</div>
+        <dl>
+          <div><dt>Hub</dt><dd id="hub-name">-</dd></div>
+          <div><dt>Mode</dt><dd id="hub-mode">-</dd></div>
+          <div><dt>Tools</dt><dd id="hub-tools">-</dd></div>
+        </dl>
+        <div class="button-row">
+          <button id="heartbeat-btn" type="button" class="ghost-btn">Ping</button>
+          <button id="disconnect-btn" type="button" class="danger-btn">Forget</button>
+        </div>
+      </section>
+    </aside>
+
+    <main class="chat-main" aria-label="Little Spud chat">
+      <header class="chat-topbar">
+        <div class="chat-title-row">
+          <button id="sidebar-toggle-btn" class="icon-btn sidebar-toggle" type="button" title="Hide controls" aria-label="Hide controls" aria-controls="spud-sidebar" aria-expanded="true">
+            <span class="sidebar-toggle-icon" aria-hidden="true"></span>
+          </button>
+          <div>
+            <h1>Chat</h1>
+            <p id="chat-context">Pair with Tater to start.</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button id="clear-chat-btn" type="button" class="ghost-btn">Clear</button>
+        </div>
+      </header>
+
+      <section id="message-list" class="message-list" aria-live="polite"></section>
+
+      <form id="composer" class="composer" autocomplete="off">
+        <div id="attachment-tray" class="attachment-tray" aria-label="Selected attachments"></div>
+        <div class="composer-row">
+          <button id="attach-btn" class="icon-btn" type="button" title="Attach media" aria-label="Attach media">
+            <span class="attach-icon" aria-hidden="true"></span>
+          </button>
+          <button id="camera-btn" class="icon-btn" type="button" title="Take photo" aria-label="Take photo">
+            <span class="camera-icon" aria-hidden="true"></span>
+          </button>
+          <button id="tts-toggle-btn" class="icon-btn tts-toggle-btn" type="button" title="Enable TTS" aria-label="Enable TTS" aria-pressed="false" disabled>
+            <span class="speaker-icon" aria-hidden="true"></span>
+          </button>
+          <textarea id="message-input" rows="1" placeholder="Message your Spud Hub" disabled></textarea>
+          <button id="stt-btn" class="icon-btn stt-btn" type="button" title="Start voice input" aria-label="Start voice input" aria-pressed="false" disabled>
+            <span class="mic-icon" aria-hidden="true"></span>
+          </button>
+          <button id="send-btn" class="primary-btn send-btn" type="submit" disabled>Send</button>
+        </div>
+        <div id="tts-status" class="tts-status" aria-live="polite"></div>
+        <input id="file-input" type="file" accept="image/*,audio/*,video/*,.pdf,.txt,.json,.md" multiple hidden />
+        <input id="camera-input" type="file" accept="image/*" capture="environment" hidden />
+        <audio id="tts-audio" preload="auto" hidden></audio>
+      </form>
+    </main>
+  </div>
+
+  <dialog id="scanner-dialog" class="scanner-dialog">
+    <form method="dialog" class="scanner-card">
+      <header>
+        <strong>Scan Little Spud QR</strong>
+        <button id="scanner-close" class="icon-btn" value="close" type="submit" aria-label="Close scanner">×</button>
+      </header>
+      <video id="scanner-video" playsinline muted></video>
+      <p id="scanner-status" class="status-line">Camera starting...</p>
+    </form>
+  </dialog>
+</body>
+</html>

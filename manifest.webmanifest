@@ -1,0 +1,17 @@
+{
+  "name": "Little Spud",
+  "short_name": "Little Spud",
+  "description": "Lightweight Little Spud client for Tater Spud Link.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#130f0a",
+  "theme_color": "#f47a1f",
+  "icons": [
+    {
+      "src": "assets/little-spud.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
