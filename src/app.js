@@ -2,7 +2,7 @@
   "use strict";
 
   const STORAGE_KEY = "little-spud-webui:v1";
-  const CLIENT_VERSION = "0.1.28";
+  const CLIENT_VERSION = "0.1.29";
   const MAX_HISTORY_MESSAGES = 14;
   const MAX_IMAGE_SEND_BYTES = 5 * 1024 * 1024;
   const MAX_STT_SECONDS = 45;
@@ -78,7 +78,8 @@
       abort: null,
       objectUrl: "",
       audioContext: null,
-      unlocked: false
+      unlocked: false,
+      cleanup: null
     },
     stt: {
       recording: false,
@@ -425,14 +426,23 @@
     window.setTimeout(scroll, 80);
   }
 
+  function isNearMessageBottom(tolerance = 220) {
+    if (!els.messageList) return true;
+    const remaining = els.messageList.scrollHeight - els.messageList.scrollTop - els.messageList.clientHeight;
+    return remaining <= tolerance;
+  }
+
   function wireMediaScrollFollow() {
-    const mediaItems = els.messageList.querySelectorAll("img, video");
+    const messages = Array.from(els.messageList.querySelectorAll(".message"));
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage) return;
+    const mediaItems = lastMessage.querySelectorAll("img");
     mediaItems.forEach((item) => {
       if (item.dataset.scrollFollowBound === "true") return;
       item.dataset.scrollFollowBound = "true";
-      item.addEventListener("load", () => scrollMessagesToBottom(), { once: true });
-      item.addEventListener("loadedmetadata", () => scrollMessagesToBottom(), { once: true });
-      item.addEventListener("loadeddata", () => scrollMessagesToBottom(), { once: true });
+      item.addEventListener("load", () => {
+        if (isNearMessageBottom()) scrollMessagesToBottom();
+      }, { once: true });
     });
   }
 
@@ -481,9 +491,9 @@
     const name = escapeHtml(file.name || "attachment");
     const type = String(file.type || "");
     const src = file.previewUrl || file.dataUrl || "";
-    if (type.startsWith("image/") && src) return `<div class="media-card"><img src="${src}" alt="${name}" /><small>${name}</small></div>`;
-    if (type.startsWith("video/") && src) return `<div class="media-card"><video src="${src}" controls></video><small>${name}</small></div>`;
-    if (type.startsWith("audio/") && src) return `<div class="media-card"><audio src="${src}" controls></audio><small>${name}</small></div>`;
+    if (type.startsWith("image/") && src) return `<div class="media-card"><img src="${src}" alt="${name}" loading="lazy" /><small>${name}</small></div>`;
+    if (type.startsWith("video/") && src) return `<div class="media-card"><video src="${src}" controls preload="none" tabindex="-1"></video><small>${name}</small></div>`;
+    if (type.startsWith("audio/") && src) return `<div class="media-card"><audio src="${src}" controls preload="none" tabindex="-1"></audio><small>${name}</small></div>`;
     return `<div class="media-card"><small>${name}<br>${escapeHtml(type || "file")} • ${escapeHtml(formatBytes(file.size))}</small></div>`;
   }
 
@@ -982,6 +992,11 @@
   }
 
   function stopTtsPlayback() {
+    if (typeof state.tts.cleanup === "function") {
+      state.tts.cleanup();
+      state.tts.cleanup = null;
+      return;
+    }
     if (state.tts.abort) {
       state.tts.abort.abort();
       state.tts.abort = null;
@@ -1074,21 +1089,33 @@
       state.tts.audio = audio;
       state.tts.objectUrl = objectUrl;
       state.tts.abort = null;
-      const cleanup = () => {
-        if (state.tts.audio === audio) {
-          state.tts.audio = null;
-          state.tts.objectUrl = "";
-        }
-        audio.removeAttribute("src");
-        audio.load();
-        URL.revokeObjectURL(objectUrl);
-        if (state.ui.ttsEnabled) setTtsStatus("TTS on");
-      };
-      audio.addEventListener("ended", cleanup, { once: true });
-      audio.addEventListener("error", cleanup, { once: true });
+      let settled = false;
+      const playbackDone = new Promise((resolve) => {
+        const cleanup = () => {
+          if (settled) return;
+          settled = true;
+          audio.removeEventListener("ended", cleanup);
+          audio.removeEventListener("error", cleanup);
+          if (state.tts.cleanup === cleanup) state.tts.cleanup = null;
+          if (state.tts.audio === audio) {
+            state.tts.audio = null;
+            state.tts.objectUrl = "";
+          }
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+          URL.revokeObjectURL(objectUrl);
+          if (state.ui.ttsEnabled) setTtsStatus("TTS on");
+          resolve();
+        };
+        state.tts.cleanup = cleanup;
+        audio.addEventListener("ended", cleanup);
+        audio.addEventListener("error", cleanup);
+      });
       audio.load();
       setTtsStatus("Speaking...");
       await audio.play();
+      await playbackDone;
     } catch (error) {
       if (controller.signal.aborted) return;
       stopTtsPlayback();
@@ -1476,6 +1503,7 @@
     const fromVoice = Boolean(options?.fromVoice);
     let reopenMic = false;
     let pendingChatActive = false;
+    let ttsPlayback = null;
     const text = els.messageInput.value.trim();
     const attachments = state.attachments.slice();
     if (!text && !attachments.length) return;
@@ -1542,16 +1570,13 @@
         createdAt: Date.now()
       };
       const responseText = content;
-      const ttsStart = state.ui.ttsEnabled ? speakAssistantText(responseText).catch(() => null) : null;
-      if (ttsStart) {
-        await Promise.race([ttsStart, sleep(TTS_START_GRACE_MS)]);
+      ttsPlayback = state.ui.ttsEnabled ? speakAssistantText(responseText).catch(() => null) : null;
+      if (ttsPlayback) {
+        await Promise.race([ttsPlayback, sleep(TTS_START_GRACE_MS)]);
       }
       refreshTypingState();
       state.messages.push(assistantMessage);
       renderMessages();
-      if (state.ui.ttsEnabled) {
-        ttsStart?.catch(() => null);
-      }
       await revealAssistantMessage(assistantId, responseText);
       await sendHeartbeat().catch(() => null);
       await syncHistoryFromHub().catch(() => null);
@@ -1568,7 +1593,10 @@
       saveState();
       renderAll();
     }
-    if (reopenMic) reopenMicAfterReply();
+    if (reopenMic) {
+      if (ttsPlayback) await ttsPlayback;
+      reopenMicAfterReply();
+    }
   }
 
   function sleep(ms) {
