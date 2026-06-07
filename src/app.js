@@ -401,6 +401,7 @@
     if (!state.messages.length) {
       els.messageList.innerHTML = `
         <div class="empty-state">
+          <img class="empty-state-logo" src="./assets/new-tater-logo.png" alt="Tater" decoding="async" />
           <strong>Pocket Tater, ready when paired.</strong>
           <span>Once synced, messages from this device arrive at your Spud Hub with your Little Spud identity.</span>
         </div>
