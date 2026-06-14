@@ -103,7 +103,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Little Spud ${{ steps.meta.outputs.version_label }}
-          prerelease: true
+          prerelease: false
+          make_latest: true
           generate_release_notes: true
           files: |
             ${{ steps.meta.outputs.zip_path }}
