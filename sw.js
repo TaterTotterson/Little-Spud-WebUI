@@ -1,4 +1,4 @@
-const CACHE_NAME = "little-spud-webui-v40";
+const CACHE_NAME = "little-spud-webui-v43";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,5 +32,18 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => caches.match(event.request))
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        const focused = clients.find((client) => "focus" in client);
+        if (focused) return focused.focus();
+        if (self.clients.openWindow) return self.clients.openWindow("./");
+        return null;
+      })
   );
 });

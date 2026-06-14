@@ -40,6 +40,8 @@ Little Spud receives native Tater chat events from the Hub, including typing sta
 
 The speaker button enables Hub-powered TTS for assistant replies. The mic button streams browser audio to the Hub for server-side STT and auto-sends the transcript when speech ends.
 
+The Notify button enables browser device notifications for queued Little Spud notifications. Browsers require user permission, and delivery depends on the browser staying active enough to poll the paired Tater Hub.
+
 ## Spud Hub Requirements
 
 The paired Tater install must be running with Spud Link enabled in Settings -> Spud Hub. Little Spud can connect to either:

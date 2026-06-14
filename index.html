@@ -17,8 +17,8 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/new-tater-avatar.png" type="image/png" />
   <link rel="apple-touch-icon" href="./assets/new-tater-avatar.png" />
-  <link rel="stylesheet" href="./src/styles.css?v=33" />
-  <script defer src="./src/app.js?v=33"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=35" />
+  <script defer src="./src/app.js?v=35"></script>
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -70,6 +70,10 @@
           <div><dt>Mode</dt><dd id="hub-mode">-</dd></div>
           <div><dt>Tools</dt><dd id="hub-tools">-</dd></div>
         </dl>
+        <div class="notification-control">
+          <button id="notify-btn" type="button" class="ghost-btn">Notify</button>
+          <span id="notify-status" class="status-line">Off</span>
+        </div>
         <div class="button-row">
           <button id="heartbeat-btn" type="button" class="ghost-btn">Ping</button>
           <button id="disconnect-btn" type="button" class="danger-btn">Forget</button>

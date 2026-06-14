@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>LittleSpud</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.tatertotterson.littlespud</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>Little Spud</string>
+  <key>CFBundleDisplayName</key>
+  <string>Little Spud</string>
+  <key>CFBundleIconFile</key>
+  <string>LittleSpudIcon</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1.31</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>13.0</string>
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+  </dict>
+  <key>NSCameraUsageDescription</key>
+  <string>Little Spud uses the camera to scan Tater pairing QR codes and attach photos when you choose to.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Little Spud uses the microphone for voice input when you choose to start recording.</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>LittleSpudUpdateManifestURL</key>
+  <string>https://raw.githubusercontent.com/TaterTotterson/Little-Spud-WebUI/main/macos/LittleSpud/update-manifest.json</string>
+</dict>
+</plist>

@@ -2,10 +2,12 @@
   "use strict";
 
   const STORAGE_KEY = "little-spud-webui:v1";
-  const CLIENT_VERSION = "0.1.29";
+  const CLIENT_VERSION = "0.1.31";
   const MAX_HISTORY_MESSAGES = 14;
   const MAX_IMAGE_SEND_BYTES = 5 * 1024 * 1024;
   const MAX_STT_SECONDS = 45;
+  const NOTIFICATION_POLL_WAIT_SECONDS = 20;
+  const NOTIFICATION_RETRY_MS = 5000;
   const TTS_START_GRACE_MS = 1400;
   const SILENT_WAV_DATA_URL = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAAAA==";
 
@@ -26,6 +28,8 @@
     hubName: $("#hub-name"),
     hubMode: $("#hub-mode"),
     hubTools: $("#hub-tools"),
+    notifyBtn: $("#notify-btn"),
+    notifyStatus: $("#notify-status"),
     heartbeatBtn: $("#heartbeat-btn"),
     disconnectBtn: $("#disconnect-btn"),
     chatContext: $("#chat-context"),
@@ -69,9 +73,14 @@
     pendingChats: 0,
     activeRuns: [],
     historySyncTimer: 0,
+    notifications: {
+      polling: false,
+      timer: 0
+    },
     ui: {
       sidebarCollapsed: false,
-      ttsEnabled: false
+      ttsEnabled: false,
+      browserNotifications: false
     },
     tts: {
       audio: null,
@@ -337,6 +346,202 @@
     return true;
   }
 
+  function notificationMessageContent(notification) {
+    const title = String(notification?.title || "").trim();
+    const message = String(notification?.message || notification?.content || "").trim();
+    if (title && message) return `${title}\n\n${message}`;
+    return title || message;
+  }
+
+  function normalizeHubNotification(notification) {
+    if (!notification || typeof notification !== "object") return null;
+    const content = notificationMessageContent(notification);
+    const attachments = normalizeAssistantArtifacts(notification.attachments || notification.artifacts || []);
+    if (!content && !attachments.length) return null;
+    return {
+      id: String(notification.id || crypto.randomUUID?.() || `${Date.now()}-notification`),
+      role: "system",
+      content: content || "Notification",
+      attachments,
+      createdAt: Number(notification.createdAt || (Number(notification.created_at || 0) * 1000) || Date.now()),
+      meta: {
+        ...(notification.meta && typeof notification.meta === "object" ? notification.meta : {}),
+        kind: "notification",
+        source: "spud_hub_notification",
+        priority: notification.priority || notification.meta?.priority || "normal"
+      }
+    };
+  }
+
+  function appendHubNotification(notification) {
+    const message = normalizeHubNotification(notification);
+    if (!message) return false;
+    const key = messageDedupeKey(message);
+    const exists = state.messages.some((existing) => (
+      messageDedupeKey(existing) === key
+      || (existing.meta?.kind === "notification" && String(existing.id || "") === message.id)
+    ));
+    if (exists) return false;
+    state.messages.push(message);
+    state.messages.sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
+    state.messages = state.messages.slice(-80);
+    saveState();
+    renderMessages();
+    showBrowserNotification(message);
+    return true;
+  }
+
+  function showBrowserNotification(message) {
+    if (!state.ui.browserNotifications) return;
+    const nativeNotify = window.webkit?.messageHandlers?.littleSpudNotify;
+    if (!nativeNotify?.postMessage && (!("Notification" in window) || Notification.permission !== "granted")) return;
+    if (document.visibilityState === "visible" && !nativeNotify?.postMessage) return;
+    const title = "Little Spud";
+    const body = String(message?.content || "").replace(/\s+/g, " ").trim();
+    const options = {
+      body: body.slice(0, 220),
+      tag: String(message?.id || "little-spud-notification"),
+      icon: "./assets/new-tater-avatar.png",
+      badge: "./assets/new-tater-avatar.png",
+      data: { url: window.location.href }
+    };
+    if (nativeNotify?.postMessage) {
+      nativeNotify.postMessage({
+        title,
+        body: options.body,
+        tag: options.tag,
+        url: window.location.href
+      });
+      return;
+    }
+    const fallback = () => {
+      try {
+        new Notification(title, options);
+      } catch {
+        // Browser notifications are best-effort; the in-app message is the source of truth.
+      }
+    };
+    if ("serviceWorker" in navigator && window.ServiceWorkerRegistration && "showNotification" in ServiceWorkerRegistration.prototype) {
+      navigator.serviceWorker.ready
+        .then((registration) => registration.showNotification(title, options))
+        .catch(fallback);
+      return;
+    }
+    fallback();
+  }
+
+  function nativeNotificationsSupported() {
+    return Boolean(window.webkit?.messageHandlers?.littleSpudNotify?.postMessage);
+  }
+
+  function browserNotificationsSupported() {
+    return nativeNotificationsSupported() || ("Notification" in window && (
+      window.isSecureContext
+      || location.protocol === "https:"
+      || location.hostname === "localhost"
+      || location.hostname === "127.0.0.1"
+    ));
+  }
+
+  function browserNotificationStatus() {
+    if (!browserNotificationsSupported()) return "unsupported";
+    if (nativeNotificationsSupported()) return "granted";
+    return Notification.permission || "default";
+  }
+
+  function updateNotifyButton() {
+    if (!els.notifyBtn || !els.notifyStatus) return;
+    const status = browserNotificationStatus();
+    const enabled = Boolean(state.ui.browserNotifications && status === "granted");
+    if (state.ui.browserNotifications && status !== "granted") {
+      state.ui.browserNotifications = false;
+      saveState();
+    }
+    els.notifyBtn.disabled = status === "unsupported" || status === "denied";
+    els.notifyBtn.classList.toggle("active", enabled);
+    els.notifyBtn.setAttribute("aria-pressed", enabled ? "true" : "false");
+    els.notifyBtn.textContent = enabled ? "Notify On" : "Notify";
+    els.notifyBtn.title = enabled ? "Disable browser notifications" : "Enable browser notifications";
+    els.notifyStatus.className = `status-line ${enabled ? "ok" : status === "denied" || status === "unsupported" ? "error" : ""}`.trim();
+    els.notifyStatus.textContent = enabled
+      ? "On"
+      : status === "denied"
+        ? "Blocked"
+        : status === "unsupported"
+          ? "Unavailable"
+          : "Off";
+  }
+
+  async function toggleBrowserNotifications() {
+    const status = browserNotificationStatus();
+    if (status === "unsupported" || status === "denied") {
+      state.ui.browserNotifications = false;
+      saveState();
+      updateNotifyButton();
+      return;
+    }
+    if (state.ui.browserNotifications && status === "granted") {
+      state.ui.browserNotifications = false;
+      saveState();
+      updateNotifyButton();
+      return;
+    }
+    let permission = status;
+    if (permission === "default") {
+      try {
+        permission = await Notification.requestPermission();
+      } catch {
+        permission = browserNotificationStatus();
+      }
+    }
+    state.ui.browserNotifications = permission === "granted";
+    saveState();
+    updateNotifyButton();
+    if (state.ui.browserNotifications) {
+      showBrowserNotification({
+        id: "little-spud-notifications-enabled",
+        content: "Device notifications enabled."
+      });
+    }
+  }
+
+  function clearNotificationPollTimer() {
+    if (!state.notifications.timer) return;
+    window.clearTimeout(state.notifications.timer);
+    state.notifications.timer = 0;
+  }
+
+  function scheduleNotificationPoll(delayMs = 0) {
+    if (!isPaired() || state.notifications.polling || state.notifications.timer) return;
+    state.notifications.timer = window.setTimeout(() => {
+      state.notifications.timer = 0;
+      pollNotificationsFromHub().catch(() => null);
+    }, Math.max(0, Number(delayMs || 0)));
+  }
+
+  async function pollNotificationsFromHub() {
+    if (!isPaired() || state.notifications.polling) return null;
+    state.notifications.polling = true;
+    try {
+      const payload = await fetchJson(
+        hubApiUrl(state.connection.hubUrl, `/api/spudlink/v1/notifications/next?wait_seconds=${NOTIFICATION_POLL_WAIT_SECONDS}`),
+        {
+          method: "GET",
+          headers: authHeaders()
+        },
+        "Notification poll"
+      );
+      if (payload.notification) appendHubNotification(payload.notification);
+      return payload;
+    } catch (error) {
+      console.warn("Notification poll failed", error);
+      return null;
+    } finally {
+      state.notifications.polling = false;
+      if (isPaired()) scheduleNotificationPoll(document.hidden ? NOTIFICATION_RETRY_MS : 250);
+    }
+  }
+
   function setStatus(message, kind = "") {
     els.pairingStatus.textContent = message;
     els.pairingStatus.className = `status-line ${kind}`.trim();
@@ -395,6 +600,7 @@
     els.disconnectBtn.disabled = !paired;
     updateTtsButton();
     updateSttButton();
+    updateNotifyButton();
   }
 
   function renderMessages() {
@@ -935,6 +1141,7 @@
     setStatus("Connected. Little Spud is ready.", "ok");
     await sendHeartbeat().catch(() => null);
     await syncHistoryFromHub().catch(() => null);
+    scheduleNotificationPoll(0);
   }
 
   async function sendHeartbeat() {
@@ -1677,6 +1884,8 @@
     stopTtsPlayback();
     resetSttCapture({ closeSocket: true });
     clearHistorySyncTimer();
+    clearNotificationPollTimer();
+    state.notifications.polling = false;
     state.stt.recording = false;
     state.stt.submitting = false;
     state.connection = { hubUrl: "", token: "", node: null, hub: null, pairedAt: 0, lastSeenAt: 0 };
@@ -1697,6 +1906,7 @@
     els.hubUrl.addEventListener("input", () => { if (!isPaired()) state.connection.hubUrl = normalizeUrl(els.hubUrl.value); saveState(); });
     els.pairBtn.addEventListener("click", () => pairLittleSpud().catch((error) => setStatus(error.message, "error")));
     els.heartbeatBtn.addEventListener("click", () => sendHeartbeat().then(() => setStatus("Hub ping succeeded.", "ok")).catch((error) => setStatus(error.message, "error")));
+    els.notifyBtn?.addEventListener("click", () => toggleBrowserNotifications().catch(() => updateNotifyButton()));
     els.disconnectBtn.addEventListener("click", disconnect);
     els.clearChatBtn.addEventListener("click", () => { stopTtsPlayback(); state.messages = []; saveState(); renderMessages(); });
     els.composer.addEventListener("submit", sendMessage);
@@ -1732,7 +1942,9 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && isPaired()) {
         syncHistoryFromHub().catch(() => null);
+        scheduleNotificationPoll(0);
       }
+      updateNotifyButton();
     });
     window.addEventListener("resize", autoCollapseSidebarForMobile);
     window.addEventListener("orientationchange", () => window.setTimeout(autoCollapseSidebarForMobile, 120));
@@ -1752,7 +1964,9 @@
     if (isPaired()) {
       sendHeartbeat()
         .then(() => syncHistoryFromHub().catch(() => null))
+        .then(() => scheduleNotificationPoll(0))
         .catch((error) => setStatus(`Hub ping failed: ${error.message}`, "error"));
+      scheduleNotificationPoll(1000);
     }
     if ("serviceWorker" in navigator && location.protocol !== "file:") {
       navigator.serviceWorker.register("./sw.js").catch(() => null);
