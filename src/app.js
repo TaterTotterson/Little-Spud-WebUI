@@ -2,7 +2,7 @@
   "use strict";
 
   const STORAGE_KEY = "little-spud-webui:v1";
-  const CLIENT_VERSION = "0.1.31";
+  const CLIENT_VERSION = "0.1.32";
   const MAX_HISTORY_MESSAGES = 14;
   const MAX_IMAGE_SEND_BYTES = 5 * 1024 * 1024;
   const MAX_STT_SECONDS = 45;
@@ -401,8 +401,8 @@
     const options = {
       body: body.slice(0, 220),
       tag: String(message?.id || "little-spud-notification"),
-      icon: "./assets/new-tater-avatar.png",
-      badge: "./assets/new-tater-avatar.png",
+      icon: "./assets/little-spud-app-icon.png",
+      badge: "./assets/little-spud-app-icon.png",
       data: { url: window.location.href }
     };
     if (nativeNotify?.postMessage) {

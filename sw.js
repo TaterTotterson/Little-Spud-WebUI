@@ -1,12 +1,12 @@
-const CACHE_NAME = "little-spud-webui-v43";
+const CACHE_NAME = "little-spud-webui-v44";
 const ASSETS = [
   "./",
   "./index.html",
   "./src/app.js",
   "./src/styles.css",
   "./assets/little-spud.svg",
+  "./assets/little-spud-app-icon.png",
   "./assets/new-tater-logo.png",
-  "./assets/new-tater-avatar.png",
   "./manifest.webmanifest"
 ];
 

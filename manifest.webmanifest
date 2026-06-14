@@ -8,8 +8,8 @@
   "theme_color": "#ff6a00",
   "icons": [
     {
-      "src": "assets/new-tater-avatar.png",
-      "sizes": "1254x1254",
+      "src": "assets/little-spud-app-icon.png",
+      "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"
     }
