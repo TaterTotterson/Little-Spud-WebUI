@@ -2,7 +2,7 @@
   "use strict";
 
   const STORAGE_KEY = "little-spud-webui:v1";
-  const CLIENT_VERSION = "0.1.32";
+  const CLIENT_VERSION = "0.1.33";
   const MAX_HISTORY_MESSAGES = 14;
   const MAX_IMAGE_SEND_BYTES = 5 * 1024 * 1024;
   const MAX_STT_SECONDS = 45;

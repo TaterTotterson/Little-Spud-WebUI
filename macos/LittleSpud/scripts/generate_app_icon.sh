@@ -7,7 +7,6 @@ REPO_ROOT="$(cd "${PROJECT_DIR}/../.." && pwd -P)"
 RESOURCES_DIR="${PROJECT_DIR}/Resources"
 SOURCE_IMAGE="${REPO_ROOT}/assets/little-spud-app-icon.png"
 SOURCE_PREVIEW="${RESOURCES_DIR}/LittleSpudIconSource.png"
-MENU_BAR_IMAGE="${RESOURCES_DIR}/LittleSpudMenuBarTemplate.png"
 ICONSET_DIR="${PROJECT_DIR}/build/LittleSpudIcon.iconset"
 OUTPUT_ICON="${RESOURCES_DIR}/LittleSpudIcon.icns"
 
@@ -20,7 +19,6 @@ rm -rf "${ICONSET_DIR}"
 mkdir -p "${ICONSET_DIR}"
 
 sips -s format png -z 1024 1024 "${SOURCE_IMAGE}" --out "${SOURCE_PREVIEW}" >/dev/null
-sips -s format png -z 36 36 "${SOURCE_IMAGE}" --out "${MENU_BAR_IMAGE}" >/dev/null
 
 sips -s format png -z 16 16 "${SOURCE_IMAGE}" --out "${ICONSET_DIR}/icon_16x16.png" >/dev/null
 sips -s format png -z 32 32 "${SOURCE_IMAGE}" --out "${ICONSET_DIR}/icon_16x16@2x.png" >/dev/null

@@ -58,9 +58,9 @@ The GitHub workflow runs on tags that match:
 v*
 ```
 
-For version `0.1.32`, tag:
+For version `0.1.33`, tag:
 
 ```sh
-git tag v0.1.32
-git push origin v0.1.32
+git tag v0.1.33
+git push origin v0.1.33
 ```

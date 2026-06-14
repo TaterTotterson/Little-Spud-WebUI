@@ -1,6 +1,6 @@
 {
   "name": "little-spud-webui",
-  "version": "0.1.32",
+  "version": "0.1.33",
   "private": true,
   "description": "Little Spud lightweight web client for Tater Spud Link.",
   "scripts": {

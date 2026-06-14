@@ -622,15 +622,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let image = resourceImage(named: "LittleSpudMenuBarTemplate", withExtension: "png") {
-            image.isTemplate = true
-            image.size = NSSize(width: 18, height: 18)
-            item.button?.image = image
-            item.button?.imagePosition = .imageOnly
-            item.button?.title = ""
-        } else {
-            item.button?.title = "LS"
-        }
+        let image = makeMenuBarIcon()
+        image.isTemplate = true
+        item.button?.image = image
+        item.button?.imagePosition = .imageOnly
+        item.button?.title = ""
         item.button?.toolTip = appDisplayName
 
         let menu = NSMenu()
@@ -652,6 +648,37 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
         updateMenuItem = update
         checkUpdatesMenuItem = checkUpdates
         refreshUpdateMenu(for: updater.state)
+    }
+
+    private func makeMenuBarIcon() -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        NSColor.black.setFill()
+
+        let body = NSBezierPath(ovalIn: NSRect(x: 4.1, y: 2.5, width: 9.8, height: 11.5))
+        body.fill()
+
+        let stem = NSBezierPath(roundedRect: NSRect(x: 8.15, y: 12.1, width: 1.7, height: 3.2), xRadius: 0.85, yRadius: 0.85)
+        stem.fill()
+
+        let leftLeaf = NSBezierPath()
+        leftLeaf.move(to: NSPoint(x: 8.9, y: 14.4))
+        leftLeaf.curve(to: NSPoint(x: 3.6, y: 16.1), controlPoint1: NSPoint(x: 7.1, y: 16.9), controlPoint2: NSPoint(x: 4.3, y: 16.8))
+        leftLeaf.curve(to: NSPoint(x: 8.4, y: 13.6), controlPoint1: NSPoint(x: 4.5, y: 13.6), controlPoint2: NSPoint(x: 7.0, y: 13.2))
+        leftLeaf.close()
+        leftLeaf.fill()
+
+        let rightLeaf = NSBezierPath()
+        rightLeaf.move(to: NSPoint(x: 9.1, y: 14.4))
+        rightLeaf.curve(to: NSPoint(x: 14.4, y: 16.1), controlPoint1: NSPoint(x: 10.9, y: 16.9), controlPoint2: NSPoint(x: 13.7, y: 16.8))
+        rightLeaf.curve(to: NSPoint(x: 9.6, y: 13.6), controlPoint1: NSPoint(x: 13.5, y: 13.6), controlPoint2: NSPoint(x: 11.0, y: 13.2))
+        rightLeaf.close()
+        rightLeaf.fill()
+
+        image.unlockFocus()
+        image.size = size
+        return image
     }
 
     private func startAutomaticUpdateChecks() {

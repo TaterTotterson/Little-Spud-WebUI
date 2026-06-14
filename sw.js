@@ -1,4 +1,4 @@
-const CACHE_NAME = "little-spud-webui-v44";
+const CACHE_NAME = "little-spud-webui-v45";
 const ASSETS = [
   "./",
   "./index.html",
