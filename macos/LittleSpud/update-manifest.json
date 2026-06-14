@@ -1,7 +1,7 @@
 {
-  "version": "0.1.31",
-  "build": 1,
-  "url": "https://raw.githubusercontent.com/TaterTotterson/Little-Spud-WebUI/main/macos/LittleSpud/releases/LittleSpud-v0.1.31.zip",
-  "sha256": "7a9b193b137b51bf57402c5ca79c167ad0a3b6700a344c969cf46f42dacebd09",
-  "notes": "Little Spud macOS update v0.1.31."
+  "version": "0.1.32",
+  "build": 2,
+  "url": "https://raw.githubusercontent.com/TaterTotterson/Little-Spud-WebUI/main/macos/LittleSpud/releases/LittleSpud-v0.1.32.zip",
+  "sha256": "8b606cbddd081bed07d372ce633ef87246e33ff3749a8b545a7fc08828c4211a",
+  "notes": "Little Spud macOS update v0.1.32."
 }
