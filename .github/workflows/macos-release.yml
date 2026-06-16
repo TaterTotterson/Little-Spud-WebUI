@@ -115,6 +115,7 @@ jobs:
           ZIP_PATH: ${{ steps.meta.outputs.zip_path }}
           DMG_PATH: ${{ steps.meta.outputs.dmg_path }}
           MANIFEST_PATH: ${{ steps.meta.outputs.manifest_path }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           repo="${GITHUB_REPOSITORY}"
