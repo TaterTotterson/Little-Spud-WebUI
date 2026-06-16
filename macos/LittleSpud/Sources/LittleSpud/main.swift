@@ -91,6 +91,9 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
 
 private final class LittleSpudWindowController: NSWindowController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
     private let webView: WKWebView
+    private let bootView = NSView()
+    private let bootLogoView = NSImageView()
+    private let bootStatusLabel = NSTextField(labelWithString: "Loading Little Spud...")
     private let statusLabel = NSTextField(labelWithString: "")
     private let notificationHandler: (NativeNotificationPayload) -> Void
 
@@ -131,7 +134,19 @@ private final class LittleSpudWindowController: NSWindowController, WKNavigation
         let container = NSView(frame: window.contentView?.bounds ?? .zero)
         container.translatesAutoresizingMaskIntoConstraints = false
         webView.translatesAutoresizingMaskIntoConstraints = false
+        bootView.translatesAutoresizingMaskIntoConstraints = false
+        bootLogoView.translatesAutoresizingMaskIntoConstraints = false
+        bootStatusLabel.translatesAutoresizingMaskIntoConstraints = false
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        webView.isHidden = true
+        bootView.wantsLayer = true
+        bootView.layer?.backgroundColor = NSColor(red: 0.03, green: 0.026, blue: 0.022, alpha: 1).cgColor
+        bootLogoView.image = bundledImage(named: "LittleSpudBootLogo", withExtension: "png")
+        bootLogoView.imageAlignment = .alignCenter
+        bootLogoView.imageScaling = .scaleProportionallyUpOrDown
+        bootStatusLabel.alignment = .center
+        bootStatusLabel.textColor = NSColor(red: 1.0, green: 0.58, blue: 0.10, alpha: 1)
+        bootStatusLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         statusLabel.alignment = .center
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.font = .systemFont(ofSize: 14)
@@ -139,14 +154,32 @@ private final class LittleSpudWindowController: NSWindowController, WKNavigation
         statusLabel.maximumNumberOfLines = 4
 
         container.addSubview(webView)
+        container.addSubview(bootView)
+        bootView.addSubview(bootLogoView)
+        bootView.addSubview(bootStatusLabel)
         container.addSubview(statusLabel)
         window.contentView = container
 
+        let bootLogoAspect = bootLogoView.heightAnchor.constraint(equalTo: bootLogoView.widthAnchor, multiplier: 0.5625)
+        bootLogoAspect.priority = .defaultHigh
         NSLayoutConstraint.activate([
             webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             webView.topAnchor.constraint(equalTo: container.topAnchor),
             webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            bootView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            bootView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            bootView.topAnchor.constraint(equalTo: container.topAnchor),
+            bootView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            bootLogoView.centerXAnchor.constraint(equalTo: bootView.centerXAnchor),
+            bootLogoView.centerYAnchor.constraint(equalTo: bootView.centerYAnchor, constant: -26),
+            bootLogoView.widthAnchor.constraint(lessThanOrEqualToConstant: 560),
+            bootLogoView.widthAnchor.constraint(lessThanOrEqualTo: bootView.widthAnchor, multiplier: 0.72),
+            bootLogoView.heightAnchor.constraint(lessThanOrEqualToConstant: 315),
+            bootLogoAspect,
+            bootStatusLabel.leadingAnchor.constraint(equalTo: bootView.leadingAnchor, constant: 24),
+            bootStatusLabel.trailingAnchor.constraint(equalTo: bootView.trailingAnchor, constant: -24),
+            bootStatusLabel.topAnchor.constraint(equalTo: bootLogoView.bottomAnchor, constant: 22),
             statusLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 24),
             statusLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -24),
             statusLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
@@ -168,8 +201,7 @@ private final class LittleSpudWindowController: NSWindowController, WKNavigation
             return
         }
 
-        statusLabel.isHidden = true
-        webView.isHidden = false
+        showBootStatus("Loading Little Spud...")
         webView.loadFileURL(webRoot.appendingPathComponent("index.html"), allowingReadAccessTo: webRoot)
     }
 
@@ -183,8 +215,29 @@ private final class LittleSpudWindowController: NSWindowController, WKNavigation
 
     private func showStatus(_ message: String) {
         webView.isHidden = true
+        bootView.isHidden = true
         statusLabel.isHidden = false
         statusLabel.stringValue = message
+    }
+
+    private func showBootStatus(_ message: String) {
+        webView.isHidden = true
+        statusLabel.isHidden = true
+        bootView.isHidden = false
+        bootStatusLabel.stringValue = message
+    }
+
+    private func showWebUI() {
+        bootView.isHidden = true
+        statusLabel.isHidden = true
+        webView.isHidden = false
+    }
+
+    private func bundledImage(named name: String, withExtension fileExtension: String) -> NSImage? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: fileExtension) else {
+            return nil
+        }
+        return NSImage(contentsOf: url)
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -199,6 +252,10 @@ private final class LittleSpudWindowController: NSWindowController, WKNavigation
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         showStatus(error.localizedDescription)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        showWebUI()
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {

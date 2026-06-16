@@ -29,6 +29,7 @@ mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
 cp "${BIN_DIR}/${EXECUTABLE_NAME}" "${MACOS_DIR}/${EXECUTABLE_NAME}"
 cp "${PROJECT_DIR}/Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
 cp "${PROJECT_DIR}/Resources/LittleSpudIcon.icns" "${RESOURCES_DIR}/LittleSpudIcon.icns"
+cp "${REPO_ROOT}/assets/littlespud.png" "${RESOURCES_DIR}/LittleSpudBootLogo.png"
 rsync -a --delete \
   --exclude='.git/' \
   --exclude='.github/' \
