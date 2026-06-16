@@ -11,6 +11,7 @@ CONTENTS_DIR="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 CODESIGN_IDENTITY="${LITTLE_SPUD_CODESIGN_IDENTITY:--}"
+CODESIGN_ENTITLEMENTS="${LITTLE_SPUD_CODESIGN_ENTITLEMENTS:-${PROJECT_DIR}/Resources/LittleSpud.entitlements}"
 
 if [ ! -f "${REPO_ROOT}/index.html" ]; then
   printf 'Missing Little Spud WebUI at %s\n' "${REPO_ROOT}" >&2
@@ -39,7 +40,22 @@ rsync -a --delete \
 chmod +x "${MACOS_DIR}/${EXECUTABLE_NAME}"
 
 find "${APP_DIR}" -exec xattr -c {} +
-codesign --force --deep --sign "${CODESIGN_IDENTITY}" "${APP_DIR}"
+if [ "${CODESIGN_IDENTITY}" = "-" ]; then
+  codesign --force --deep --sign "${CODESIGN_IDENTITY}" "${APP_DIR}"
+else
+  if [ ! -f "${CODESIGN_ENTITLEMENTS}" ]; then
+    printf 'Missing codesign entitlements: %s\n' "${CODESIGN_ENTITLEMENTS}" >&2
+    exit 1
+  fi
+  codesign \
+    --force \
+    --deep \
+    --options runtime \
+    --timestamp \
+    --entitlements "${CODESIGN_ENTITLEMENTS}" \
+    --sign "${CODESIGN_IDENTITY}" \
+    "${APP_DIR}"
+fi
 codesign --verify --deep --strict --verbose=2 "${APP_DIR}"
 
 printf 'Built %s\n' "${APP_DIR}"
