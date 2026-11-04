@@ -54,3 +54,9 @@ The paired Tater install must be running with Spud Link enabled in Settings -> S
 If Little Spud is hosted over HTTPS, the Tater URL should also be HTTPS. Use HTTP only when both the Little Spud page and Tater are on HTTP, such as local LAN testing.
 
 For remote access, place both Little Spud and Tater behind HTTPS-capable reverse proxy routes, then use the public Tater URL in the Spud Hub pairing payload.
+
+## License and trademarks
+
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+
+The Tater name and logo are governed by the [Tater Trademark Policy](TRADEMARKS.md).\n
